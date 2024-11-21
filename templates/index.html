@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ontologi</title>
+<style>
+    label {
+        background-color: indigo;
+        color: white;
+        padding: 0.5rem;
+        font-family: sans-serif;
+        border-radius: 0.3rem;
+        cursor: pointer;
+        margin-top: 1rem;
+        display: inline-block;
+    }
+
+    #file-chosen {
+        margin-left: 0.3rem;
+        font-family: sans-serif;
+    }
+</style>
+</head>
+<body>
+<div class='otp-container' style="background: #eaeaea;
+padding: 25px;
+text-align: center;
+margin: 0 auto;
+margin-bottom: 25px;
+width: 400px;
+border-radius: 14px;">
+
+<h2 style="font-size: 1.2rem;">Ontologi Driver's Onboarding Automation</h2>
+
+<form id="upload-form" action="http://127.0.0.1:5000/upload" method="POST" enctype="multipart/form-data">
+    <!-- actual upload which is hidden -->
+    <input type="file" id="actual-btn" name="file" hidden onchange="showFileName()"/>
+
+    <!-- our custom upload button -->
+    <label for="actual-btn">Choose File</label>
+
+    <!-- name of file chosen -->
+    <span id="file-chosen">No file chosen</span>
+
+    <button class='verify-button' style="padding: 10px 30px;
+    border: none;
+    margin-top: 30px;
+    background: indigo;
+    display: block;
+    margin: 0px auto;
+    margin-top: 30px;
+    font-size: 0.9rem;
+    color: #fff;
+    border-radius: 8px;" type="submit">Start RPA</button>
+</form>
+</div>
+
+<script>
+    function showFileName() {
+        const fileInput = document.getElementById('actual-btn');
+        const fileNameSpan = document.getElementById('file-chosen');
+        if (fileInput.files.length > 0) {
+            fileNameSpan.textContent = fileInput.files[0].name;
+        } else {
+            fileNameSpan.textContent = 'No file chosen';
+        }
+    }
+</script>
+</body>
+</html>
