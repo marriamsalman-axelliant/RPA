@@ -6,6 +6,146 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
+
+def navigate_to_add_associate_page(driver, wait):
+    driver.get("https://logistics.amazon.ca/dspconsole")
+
+    if "Logistics" in driver.title:
+        side_menu_button = wait.until(
+            EC.presence_of_element_located((By.CLASS_NAME, "fp-nav-menu-icon"))
+        )
+
+        if side_menu_button.is_displayed():
+            time.sleep(3)
+            print("Side menu button is visible in mobile view.")
+            side_menu_button.click()  # Click to open the side menu
+            print("Clicked the side menu button.")
+            time.sleep(3)  # Allow the menu to fully load
+
+        nav_list = driver.find_elements(By.CLASS_NAME, "fp-nav-menu-list-item")
+
+        time.sleep(2)
+
+        setup_link = None
+        for nav_item in nav_list:
+            anchor = nav_item.find_element(By.TAG_NAME, "a")
+            if "Set-up" in anchor.text:
+                setup_link = anchor
+                break
+        if setup_link is None:
+            print("The 'Set-up' link is not visible. Check for rendering issues.")
+            return False
+
+        time.sleep(2)
+
+        if setup_link.is_displayed():
+            print("The 'Set-up' link is visible.")
+        else:
+            print("The 'Set-up' link is not visible. Check for rendering issues.")
+            return False
+
+        time.sleep(2)
+
+        try:
+            # Perform hover action
+            actions = ActionChains(driver)
+            actions.move_to_element(setup_link).perform()
+            print("Hovered over the 'Set-up' link.")
+            setup_link.click()
+            print("Clicked over the 'Set-up' link.")
+            time.sleep(2)
+
+            dropdown_menu = wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//*[@id="fp-nav-menu"]/ul/li[7]/ul')
+                )
+            )
+            print("Dropdown menu appeared.")
+            time.sleep(3)
+
+            # Locate the 'Associates' link
+            associates_option = WebDriverWait(dropdown_menu, 10).until(
+                EC.presence_of_element_located((By.LINK_TEXT, "Associates"))
+            )
+            driver.execute_script("arguments[0].scrollIntoView();", associates_option)
+            associates_option.click()
+            print("Clicked on the 'Associates' option.")
+
+        except Exception as e:
+            print(f"Failed to click on the 'Associates' option: {e}")
+            return False
+
+        try:
+            # Step 1: Click the "Add Delivery Associates" element
+            add_delivery_associates_button = wait.until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        '//*[@id="root"]/div/div/div[1]/div/div/div/div/div/div[3]/div/div[2]/div/a',
+                    )
+                )
+            )
+
+            driver.execute_script(
+                "arguments[0].scrollIntoView();", add_delivery_associates_button
+            )
+            time.sleep(2)
+            add_delivery_associates_button.click()
+            print("Clicked on the Add Delivery Associates element.")
+
+            time.sleep(5)
+
+            # Step 2: Wait for the new window and switch to it
+            wait.until(lambda d: len(driver.window_handles) > 1)
+            new_window = [
+                window
+                for window in driver.window_handles
+                if window != driver.current_window_handle
+            ][0]
+            driver.switch_to.window(new_window)
+            print("Switched to the new window.")
+            time.sleep(3)
+
+            # Step 3: Click the "Add a New Delivery Associate" element
+            try:
+                add_a_new_delivery_associate_button = wait.until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@id="dsp-onboarding"]/div/main/div[2]/div[2]/button',
+                        )
+                    )
+                )
+                driver.execute_script(
+                    "arguments[0].scrollIntoView();",
+                    add_a_new_delivery_associate_button,
+                )
+                time.sleep(3)
+
+                add_a_new_delivery_associate_button.click()
+                print("Clicked on the Add a New Delivery Associate element.")
+                return True
+
+            except Exception as e:
+                print(f"Failed to click on 'Add a New Delivery Associate': {e}")
+                return False
+
+        except Exception as e:
+            print(
+                f"Failed to click on the 'Add Delivery Associates' element or switch windows: {e}"
+            )
+            return False
+
+    else:
+        print("Something went wrong. Logistics page can not be loaded")
+        return False
+
+
+def get_amazon_profile_url(driver, wait):
+    get_amazon_profile_url = driver.current_url
+    return get_amazon_profile_url
 
 
 def basic_info_onboarding(driver, wait, location, first_name, last_name, email):
@@ -31,7 +171,7 @@ def basic_info_onboarding(driver, wait, location, first_name, last_name, email):
 
         select_offering_type_success = select_offering_type(driver, wait, location)
         if not select_offering_type_success:
-            return False
+            return False, None
         time.sleep(3)
 
         checkbox_driver = driver.find_element(
@@ -78,22 +218,41 @@ def basic_info_onboarding(driver, wait, location, first_name, last_name, email):
                 )
                 ok_button.click()
                 print("Clicked on the OK button to close the pop-up.")
+                time.sleep(1)
+
+                wait.until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            "//div[@class='af-column da__photo__empty align-center justify-center']",
+                        )
+                    )
+                )
+                print("Page has loaded after redirection.")
+
+                current_url = driver.current_url
+                print(
+                    f"Current URL after amazon onboarding and redirection: {current_url}"
+                )
+
+                time.sleep(3)
 
             except Exception as e:
                 print(f"Error: {e}")
                 print("No pop-up appeared or could not click the OK button.")
-                return False
+                return False, None
 
-
-            return True
+            amazon_profile_url = get_amazon_profile_url(driver, wait)
+            if amazon_profile_url:
+                return True, amazon_profile_url
 
         except Exception as e:
             print(f"Failed to click the 'Send' button: {e}")
-            return False
+            return False, None
 
     except Exception as e:
         print(f"Failed to fill the basic info onboarding form: {e}")
-        return False
+        return False, None
 
 
 def select_offering_type(driver, wait, location):
@@ -162,11 +321,11 @@ def upload_image_file(file_input, file_name):
 
 
 def edit_dob_and_licence_details(
-    driver, wait, dob, license_expiry_date, driver_license
+    driver, wait, amazon_profile_url, dob, license_expiry_date, driver_license
 ):
     """Fill DOB, license expiration date, and license number, then confirm."""
     try:
-
+        driver.get(amazon_profile_url)
         edit_button = wait.until(
             EC.element_to_be_clickable(
                 (
@@ -262,6 +421,7 @@ def edit_dob_and_licence_details(
             return False
         except Exception:
             print("No alert message detected. Proceeding.")
+            time.sleep(2)
 
         return True
 
@@ -270,8 +430,9 @@ def edit_dob_and_licence_details(
         return False
 
 
-def edit_photo(driver, wait):
+def edit_photo(driver, wait, amazon_profile_url):
     try:
+        driver.get(amazon_profile_url)
         edit_button = wait.until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//*[@id='dsp-onboarding']/div/main/div/div[1]/div/div[1]/a")
@@ -307,8 +468,8 @@ def edit_photo(driver, wait):
                 )
                 time.sleep(1)
                 confirm_button.click()
-                time.sleep(3)
                 print("Confirm button clicked successfully.")
+                time.sleep(3)
                 return True
             except Exception as e:
                 print(f"Error clicking the Confirm button: {e}")
@@ -322,15 +483,18 @@ def edit_photo(driver, wait):
         return False
 
 
-def verify_and_update_associate_settings(driver, wait, location):
+def verify_and_update_associate_settings(driver, wait, amazon_profile_url, location):
     try:
-        # Locate the Primary Delivery Station setting
-        delivery_station_label_xpath = (
-            '//*[@id="dsp-onboarding"]/div/main/div/div[3]/div[2]/div[4]/span'
-        )
-        # Fetch the current station text
-        delivery_station_element = driver.find_element(
-            By.XPATH, delivery_station_label_xpath
+        driver.get(amazon_profile_url)
+        time.sleep(1)
+
+        delivery_station_element = wait.until(
+            EC.presence_of_element_located(
+                (
+                    By.XPATH,
+                    '//*[@id="dsp-onboarding"]/div/main/div/div[3]/div[2]/div[4]/span',
+                )
+            )
         )
         time.sleep(1)
 
@@ -347,9 +511,7 @@ def verify_and_update_associate_settings(driver, wait, location):
 
         # Check if the settings are correct
         if current_station == expected_station:
-            print("Primary Delivery Station is correctly set to Mississauga (DOI6).")
-        elif current_station == expected_station:
-            print("Primary Delivery Station is correctly set to Oakville (HYZ1).")
+            print(f"Primary Delivery Station is correctly set to {location}.")
         else:
             print("Incorrect Primary Delivery Station found.")
 
@@ -428,8 +590,7 @@ def verify_and_update_associate_settings(driver, wait, location):
             wait.until(EC.invisibility_of_element(modal))
             print(f"Associate settings updated: Station='{expected_station}")
 
-            time.sleep(2)
-            
+        time.sleep(2)
         return True
     except NoSuchElementException as e:
         print(f"Element not found: {e}")
@@ -442,15 +603,19 @@ def verify_and_update_associate_settings(driver, wait, location):
         return False
 
 
-def expand_onboarding_section(driver, wait, expand_button_xpath):
+def expand_onboarding_section(driver, wait, amazon_profile_url, expand_button_xpath):
     """
     Expands the onboarding section and waits for the 'Complete your tasks' text.
     """
     try:
-        expand_button = WebDriverWait(driver, 10).until(
+
+        driver.get(amazon_profile_url)
+        time.sleep(1)
+
+        expand_button = wait.until(
             EC.element_to_be_clickable((By.XPATH, expand_button_xpath))
         )
-        time.sleep(2)
+        time.sleep(1)
         expand_button.click()
         time.sleep(2)
 
@@ -469,9 +634,10 @@ def expand_onboarding_section(driver, wait, expand_button_xpath):
                 expand_button = wait.until(
                     EC.element_to_be_clickable((By.XPATH, expand_button_xpath))
                 )
-                time.sleep(4)
+                time.sleep(1)
                 expand_button.click()
 
+        time.sleep(2)
         return True
     except:
         print("Something went wrong while expanding onboarding section")
@@ -479,13 +645,14 @@ def expand_onboarding_section(driver, wait, expand_button_xpath):
 
 
 def verify_onboarding_progress(
-    driver, wait, onboarding_progress_xpath, expected_progress
+    driver, wait, amazon_profile_url, onboarding_progress_xpath, expected_progress
 ):
     """
     Verifies the initial progress.
     """
     try:
-        driver.refresh()
+
+        driver.get(amazon_profile_url)
         time.sleep(2)
         # Verify progress
         onboarding_progress = wait.until(
@@ -501,6 +668,7 @@ def verify_onboarding_progress(
             return False
 
         print(f"Initial progress verified: {onboarding_progress.text}")
+        time.sleep(2)
         return True
 
     except TimeoutException as e:
@@ -514,6 +682,7 @@ def verify_onboarding_progress(
 def complete_task(
     driver,
     wait,
+    amazon_profile_url,
     task_name,
     edit_button_xpath,
     yes_radio_button_xpath,
@@ -524,7 +693,10 @@ def complete_task(
     """
     try:
         expand_onboarding_section_success = expand_onboarding_section(
-            driver, wait, '//*[@id="dsp-onboarding"]/div/main/div/div[4]/div/div[1]/i'
+            driver,
+            wait,
+            amazon_profile_url,
+            '//*[@id="dsp-onboarding"]/div/main/div/div[4]/div/div[1]/i',
         )
         if not expand_onboarding_section_success:
             return False

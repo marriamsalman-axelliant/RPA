@@ -78,27 +78,27 @@ def upload_file():
                 else None
             )
 
-            # ops_email_success = add_username_on_ops_email(username)
-            # if ops_email_success:
-            #     print("Ops email onboarding successful")
-            # else:
-            #     print("Ops email onboarding failed")
-            #     return jsonify({"error": "Ops email onboarding failed"}), 500
+            ops_email_success = add_username_on_ops_email(username)
+            if ops_email_success:
+                print("Ops email onboarding successful")
+            else:
+                print("Ops email onboarding failed")
+                return jsonify({"error": "Ops email onboarding failed"}), 500
 
-            # amazon_success = driver_amazon_onboarding(
-            #     first_name,
-            #     last_name,
-            #     email,
-            #     location,
-            #     dob,
-            #     license_expiry_date,
-            #     driver_license,
-            # )
-            # if amazon_success:
-            #     print("Amazon onboarding successful")
-            # else:
-            #     print("Amazon onboarding failed")
-            #     return jsonify({"error": "Amazon onboarding failed"}), 500
+            amazon_success = driver_amazon_onboarding(
+                first_name,
+                last_name,
+                email,
+                location,
+                dob,
+                license_expiry_date,
+                driver_license,
+            )
+            if amazon_success:
+                print("Amazon onboarding successful")
+            else:
+                print("Amazon onboarding failed")
+                return jsonify({"error": "Amazon onboarding failed"}), 500
 
             password_set_success = amazon_onboarding_password_set(
                 first_name, last_name, email, password, phone_number
